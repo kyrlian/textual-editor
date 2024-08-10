@@ -40,23 +40,25 @@ class WriterApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield TextArea(
-            id="txt_input", text=read_file(self.input_file), tab_behavior="indent"
-        )
-        yield Static(self.status_msg, id="status_log")
+        yield TextArea(id="txt", text=read_file(self.input_file), tab_behavior="indent")
+        yield Static(self.status_msg, id="status")
         yield Footer()
 
     def action_save(self):
-        self.set_status("Saving...")
-        txt = self.query_one("#txt_input", TextArea).text
+        self.set_status(f"Saving {self.input_file}...",False)
+        txt = self.query_one("#txt", TextArea).text
         write_file(self.input_file,txt)
+        self.set_status()
 
     def set_status(self, msg=None, save_status=True):
         if msg is None:
             msg = self.status_msg
         elif save_status:
             self.status_msg = msg
-        self.query_one("#status_log", Static).update(msg)  # .write_line(msg)
+        self.query_one("#status", Static).update(msg)  # .write_line(msg)
+
+    def on_ready(self) -> None:
+        self.set_status(f"Editing {self.input_file}")
 
 def main():
     args = sys.argv[1:]
