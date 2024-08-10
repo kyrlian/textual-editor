@@ -16,7 +16,5 @@
 ## Run
 
 ```sh
-poetry shell
-
-python ./textual_editor/main.py
+ted
 ```

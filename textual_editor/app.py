@@ -58,9 +58,11 @@ class WriterApp(App):
             self.status_msg = msg
         self.query_one("#status_log", Static).update(msg)  # .write_line(msg)
 
-
-if __name__ == "__main__":
+def main():
     args = sys.argv[1:]
     input_file = "dummy.txt" if len(args) == 0 else args[0]
     app = WriterApp(input_file=input_file)
     app.run()
+
+if __name__ == "__main__":
+    main()
