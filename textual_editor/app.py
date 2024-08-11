@@ -36,21 +36,21 @@ class WriterApp(App):
 
     def detect_language(self,input_file):
         filename, file_extension = os.path.splitext(input_file)
-        # languages =  {"."+e : e for e in TextArea().available_languages}
+        languages =  {"."+e : e for e in TextArea().available_languages}
         extensions = { ".yml": "yaml",".py": "python",".js":"javascript",".md":"markdown",".sh":"bash"}
+        if file_extension in languages:
+            return languages[file_extension]
         if file_extension in extensions:
             return extensions[file_extension]
-        else:
-            return file_extension.replace(".","")
 
     def __init__(self, *args, input_file, **kwargs):
         self.input_file = input_file
-        self.language=self.detect_language(self.input_file)
         self.status_msg = "Initializing..."
         super().__init__(*args, **kwargs)
 
     def compose(self) -> ComposeResult:
         yield Header()
+        self.language=self.detect_language(self.input_file)
         yield TextArea.code_editor(id="txt", text="Loading...", language=self.language)#, tab_behavior="indent")
         yield Static(self.status_msg, id="status")
         # yield Log(self.status_msg, id="status", auto_scroll=True)
