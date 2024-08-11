@@ -29,6 +29,7 @@ def write_file(filename, s):
 
 
 class TextEditor(App):
+    TITLE = "Text Editor"
     BINDINGS = [
         ("ctrl+s", "save", "Save"),
         ("ctrl+q", "quit", "Quit"),
