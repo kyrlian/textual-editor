@@ -28,7 +28,7 @@ def write_file(filename, s):
 # https://textual.textualize.io/widgets/text_area/#hooking-into-key-presses
 
 
-class WriterApp(App):
+class TextEditor(App):
     BINDINGS = [
         ("ctrl+s", "save", "Save"),
         ("ctrl+q", "quit", "Quit"),
@@ -80,7 +80,7 @@ class WriterApp(App):
 def main():
     args = sys.argv[1:]
     input_file = "dummy.txt" if len(args) == 0 else args[0]
-    app = WriterApp(input_file=input_file)
+    app = TextEditor(input_file=input_file)
     app.run()
 
 if __name__ == "__main__":
