@@ -3,6 +3,7 @@
 # https://textual.textualize.io/widgets/input/
 
 import sys
+import os
 from textual.app import App, ComposeResult
 from textual.widgets import TextArea, Header, Footer, Static
 
@@ -33,15 +34,26 @@ class WriterApp(App):
         ("ctrl+q", "quit", "Quit"),
     ]
 
+    def detect_language(self,input_file):
+        filename, file_extension = os.path.splitext(input_file)
+        # languages =  {"."+e : e for e in TextArea().available_languages}
+        extensions = { ".yml": "yaml",".py": "python",".js":"javascript",".md":"markdown",".sh":"bash"}
+        if file_extension in extensions:
+            return extensions[file_extension]
+        else:
+            return file_extension.replace(".","")
+
     def __init__(self, *args, input_file, **kwargs):
         self.input_file = input_file
+        self.language=self.detect_language(self.input_file)
         self.status_msg = "Initializing..."
         super().__init__(*args, **kwargs)
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield TextArea(id="txt", text=read_file(self.input_file), tab_behavior="indent")
+        yield TextArea.code_editor(id="txt", text="Loading...", language=self.language)#, tab_behavior="indent")
         yield Static(self.status_msg, id="status")
+        # yield Log(self.status_msg, id="status", auto_scroll=True)
         yield Footer()
 
     def action_save(self):
@@ -55,10 +67,15 @@ class WriterApp(App):
             msg = self.status_msg
         elif save_status:
             self.status_msg = msg
+        # timestamp = datetime.now().strftime("%H:%M:%S")
+        # self.query_one("#status", Log).write_line(f"{timestamp}: {msg}")
         self.query_one("#status", Static).update(msg)  # .write_line(msg)
 
     def on_ready(self) -> None:
-        self.set_status(f"Editing {self.input_file}")
+        ta = self.query_one("#txt", TextArea)
+        #ta.language = self.detect_language(self.input_file)
+        ta.text=read_file(self.input_file)
+        self.set_status(f"Editing {self.input_file} - Language: {self.language}")
 
 def main():
     args = sys.argv[1:]
