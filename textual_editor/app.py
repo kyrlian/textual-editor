@@ -6,6 +6,7 @@ import sys
 import os
 from textual.app import App, ComposeResult
 from textual.widgets import TextArea, Header, Footer, Static
+from textual.binding import Binding
 
 def read_file(filename):
     try:
@@ -31,18 +32,9 @@ def write_file(filename, s):
 class TextEditor(App):
     TITLE = "Text Editor"
     BINDINGS = [
-        ("ctrl+s", "save", "Save"),
+        Binding(key="ctrl+s",action= "save", description="Save"),
         ("ctrl+q", "quit", "Quit"),
     ]
-
-    def detect_language(self,input_file):
-        filename, file_extension = os.path.splitext(input_file)
-        languages =  {"."+e : e for e in TextArea().available_languages}
-        extensions = { ".yml": "yaml",".py": "python",".js":"javascript",".md":"markdown",".sh":"bash"}
-        if file_extension in languages:
-            return languages[file_extension]
-        if file_extension in extensions:
-            return extensions[file_extension]
 
     def __init__(self, *args, input_file, **kwargs):
         self.input_file = input_file
@@ -51,11 +43,25 @@ class TextEditor(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        self.language=self.detect_language(self.input_file)
-        yield TextArea.code_editor(id="txt", text="Loading...", language=self.language)#, tab_behavior="indent")
+        yield TextArea.code_editor(id="txt", text="Loading...")#, tab_behavior="indent")
         yield Static(self.status_msg, id="status")
         # yield Log(self.status_msg, id="status", auto_scroll=True)
         yield Footer()
+
+    def detect_language(self, ta:TextArea, input_file):
+        filename, file_extension = os.path.splitext(input_file)
+        languages =  {"."+e : e for e in ta.available_languages}
+        extensions = { ".yml": "yaml",".py": "python",".js":"javascript",".md":"markdown",".sh":"bash"}
+        if file_extension in languages:
+            return languages[file_extension]
+        if file_extension in extensions:
+            return extensions[file_extension]
+        
+    def load_file(self, input_file):
+        ta = self.query_one("#txt", TextArea)
+        self.language = self.detect_language(ta, input_file)
+        ta.language = self.language
+        ta.text=read_file(input_file)
 
     def action_save(self):
         self.set_status(f"Saving {self.input_file}...",False)
@@ -72,10 +78,10 @@ class TextEditor(App):
         # self.query_one("#status", Log).write_line(f"{timestamp}: {msg}")
         self.query_one("#status", Static).update(msg)  # .write_line(msg)
 
+    def on_mount(self)  -> None:
+        self.load_file(self.input_file)
+
     def on_ready(self) -> None:
-        ta = self.query_one("#txt", TextArea)
-        #ta.language = self.detect_language(self.input_file)
-        ta.text=read_file(self.input_file)
         self.set_status(f"Editing {self.input_file} - Language: {self.language}")
 
 def main():
