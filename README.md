@@ -23,3 +23,8 @@ Install and run with pipx:
 pipx install .
 ted <file name>
 ```
+
+uninstall from pipx:
+```sh
+pipx uninstall textual_editor
+```
