@@ -2,12 +2,13 @@
 
 # https://textual.textualize.io/widgets/input/
 import sys
+from datetime import datetime
 from pathlib import Path, PurePath
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
-from textual.widgets import TextArea, Header, Footer, Static, DirectoryTree, Log
+from textual.widgets import TextArea, Header, Footer, Static, DirectoryTree, Log, Input
 from textual.binding import Binding
-
+from textual.screen import ModalScreen
 
 def read_file(filename):
     try:
@@ -30,6 +31,21 @@ def write_file(filename, s):
 # custom text area hook
 # https://textual.textualize.io/widgets/text_area/#hooking-into-key-presses
 
+class NewFileScreen(ModalScreen):
+    def __init__(self, *args, parent_app, **kwargs):
+        self.parent_app = parent_app
+        super().__init__(*args, **kwargs)
+
+    def compose(self) -> ComposeResult:
+        yield Static("Enter new file name")
+        yield Input(name="filename", id="newfile_input")
+
+    def on_input_submitted(self, message: Input.Submitted) -> None:
+        # TODO generate proper file path
+        file_path = self.parent_app.current_dir + "/" + message.value
+        write_file(file_path, "")
+        self.parent_app.load_file(file_path)
+
 
 class TextEditor(App):
     """A simple Textual text editor."""
@@ -37,10 +53,11 @@ class TextEditor(App):
     #####################
     ### Textual setup ###
     #####################
-
+    CSS_PATH = "app.tcss"
     TITLE = "Text Editor"
     BINDINGS = [
         Binding(key="ctrl+s", action="save", description="Save"),
+        ("ctrl+n", "new", "New"),
         ("ctrl+o", "open", "Open"),
         ("ctrl+q", "quit", "Quit"),
     ]
@@ -117,6 +134,9 @@ class TextEditor(App):
     def action_open(self):
         self.show_file_panel()
 
+    def action_new(self):
+        self.push_screen(NewFileScreen(parent_app=self))
+
     #################
     ###  methods  ###
     #################
@@ -132,7 +152,7 @@ class TextEditor(App):
     def load_file(self, file_path):
         if Path(file_path).exists():
             self.current_file = file_path
-            self.current_dir  = PurePath(file_path).parent()
+            self.current_dir  = PurePath(file_path).parent
             self.hide_file_panel()
             # detect language from extension
             text_area = self.query_one("#text_area", TextArea)

@@ -1,0 +1,7 @@
+NewFileScreen {
+    align: center middle;
+}
+
+Button {
+    width: 100%;
+}
