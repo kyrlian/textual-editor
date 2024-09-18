@@ -2,10 +2,10 @@
 
 # https://textual.textualize.io/widgets/input/
 import sys
-import os
+from pathlib import Path, PurePath
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
-from textual.widgets import TextArea, Header, Footer, Static, DirectoryTree
+from textual.widgets import TextArea, Header, Footer, Static, DirectoryTree, Log
 from textual.binding import Binding
 
 
@@ -45,9 +45,10 @@ class TextEditor(App):
         ("ctrl+q", "quit", "Quit"),
     ]
 
-    def __init__(self, *args, input_file, **kwargs):
-        self.current_file = input_file # might be None
-        self.current_dir = os.path.dirname(input_file)  if input_file else os.getcwd()
+    def __init__(self, *args, arg_file_or_path, **kwargs):
+        self.arg_file_or_path = arg_file_or_path
+        self.current_file = None
+        self.current_dir = None
         self.status_msg = "Initializing..."
         self.language = "markdown"  # default language
         self.file_panel_width = 40
@@ -55,14 +56,13 @@ class TextEditor(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-#        with Horizontal():
-        file_panel = DirectoryTree(path=self.current_dir, id="file_panel")
+        file_panel = DirectoryTree(path=".", id="file_panel")
         file_panel.styles.dock = "left"
         file_panel.styles.width =  self.file_panel_width
         yield file_panel
         yield TextArea.code_editor(id="text_area", text="Please select a file...", disabled=True)
         yield Static(self.status_msg, id="status_area")
-        # yield Log(self.status_msg, id="status_area", auto_scroll=True)
+        yield Log("Loading...", id="log_area", auto_scroll=True)
         yield Footer()
 
     #################
@@ -73,7 +73,32 @@ class TextEditor(App):
         self.load_file(event.path)
 
     def on_mount(self) -> None:
-        self.load_file(self.current_file)
+        # calculate starting file and dir
+        start_file = None
+        start_dir = Path.cwd()
+        if self.arg_file_or_path is not None:
+            fp = Path(self.arg_file_or_path)
+            if fp.is_dir():# only true if exists and is a directory
+                start_file = None
+                start_dir = fp
+            elif fp.is_file():# only true if exists and is a file
+                start_file = fp
+                start_dir = fp.parent
+            elif not fp.exists():
+                try:
+                    write_file(fp, "")
+                    start_file = fp
+                    start_dir = fp.parent
+                except IOError as e:
+                    self.write_to_log("Error creating file", e, "error")            
+        # store the current file and directory
+        self.current_file = start_file.resolve() if start_file is not None else None
+        self.current_dir = start_dir.resolve()
+        # set the directory tree start dir
+        self.query_one("#file_panel", DirectoryTree).path = str(self.current_dir)
+        # load the file
+        if self.current_file is not None:
+            self.load_file(self.current_file)
 
     def on_ready(self) -> None:
         self.set_status(f"Editing {self.current_file} - Language: {self.language}")
@@ -109,25 +134,21 @@ class TextEditor(App):
         self.query_one("#file_panel", DirectoryTree).styles.width =  0
 
     def load_file(self, file_path):
-        if file_path is not None :
+        if Path(file_path).exists():
             self.current_file = file_path
-            self.current_dir  = os.path.dirname(file_path) 
+            self.current_dir  = PurePath(file_path).parent()
             self.hide_file_panel()
+            # detect language from extension
             text_area = self.query_one("#text_area", TextArea)
             self.language = self.detect_file_language(text_area, file_path)
             text_area.language = self.language
-            text_area.disabled = False
-            if os.path.exists(file_path):
-                # read file
-                text_area.text = read_file(file_path)
-                self.set_status(f"{file_path} loaded")
-            else:
-                # create new file
-                text_area.text = ""
-                self.set_status(f"Creating {file_path}")
+            text_area.disabled = False    
+            # read file
+            text_area.text = read_file(file_path)
+            self.set_status(f"{file_path} loaded")
     
     def detect_file_language(self, text_area: TextArea, file_path: str):
-        filename, file_extension = os.path.splitext(file_path)
+        file_extension = PurePath(file_path).suffix
         languages = {"." + e: e for e in text_area.available_languages}
         extensions = {
             ".yml": "yaml",
@@ -142,19 +163,21 @@ class TextEditor(App):
             return extensions[file_extension]
         return "markdown"
 
+    def write_to_log(self, message):
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.query_one("#log_area", Log).write_line(f"{timestamp}: {msg}")
+
     def set_status(self, msg=None, save_status=True):
         if msg is None:
             msg = self.status_msg
         elif save_status:
             self.status_msg = msg
-        # timestamp = datetime.now().strftime("%H:%M:%S")
-        # self.query_one("#status_area", Log).write_line(f"{timestamp}: {msg}")
-        self.query_one("#status_area", Static).update(msg)  # .write_line(msg)
+        self.query_one("#status_area", Static).update(msg)
 
 def main():
     args = sys.argv[1:]
-    arg_file = None if len(args) == 0 else args[0]
-    app = TextEditor(input_file=arg_file)
+    arg_file_or_path = None if len(args) == 0 else args[0]
+    app = TextEditor(arg_file_or_path=arg_file_or_path)
     app.run()
 
 
