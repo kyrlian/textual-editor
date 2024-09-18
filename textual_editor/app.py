@@ -48,7 +48,7 @@ class TextEditor(App):
     def __init__(self, *args, arg_file_or_path, **kwargs):
         self.arg_file_or_path = arg_file_or_path
         self.current_file = None
-        self.current_dir = None
+        self.current_dir = Path.cwd()
         self.status_msg = "Initializing..."
         self.language = "markdown"  # default language
         self.file_panel_width = 40
@@ -62,7 +62,7 @@ class TextEditor(App):
         yield file_panel
         yield TextArea.code_editor(id="text_area", text="Please select a file...", disabled=True)
         yield Static(self.status_msg, id="status_area")
-        yield Log("Loading...", id="log_area", auto_scroll=True)
+        yield Log( id="log_area", auto_scroll=True, max_lines=5)
         yield Footer()
 
     #################
@@ -74,26 +74,22 @@ class TextEditor(App):
 
     def on_mount(self) -> None:
         # calculate starting file and dir
-        start_file = None
-        start_dir = Path.cwd()
         if self.arg_file_or_path is not None:
             fp = Path(self.arg_file_or_path)
             if fp.is_dir():# only true if exists and is a directory
-                start_file = None
-                start_dir = fp
+                self.current_file = None
+                self.current_dir = fp
             elif fp.is_file():# only true if exists and is a file
-                start_file = fp
-                start_dir = fp.parent
+                self.current_file = fp
+                self.current_dir = fp.parent
             elif not fp.exists():
                 try:
                     write_file(fp, "")
-                    start_file = fp
-                    start_dir = fp.parent
+                    self.current_file = fp
+                    self.current_dir = fp.parent
+                    self.write_to_log("Creating file", fp)        
                 except IOError as e:
                     self.write_to_log("Error creating file", e, "error")            
-        # store the current file and directory
-        self.current_file = start_file.resolve() if start_file is not None else None
-        self.current_dir = start_dir.resolve()
         # set the directory tree start dir
         self.query_one("#file_panel", DirectoryTree).path = str(self.current_dir)
         # load the file
@@ -163,7 +159,7 @@ class TextEditor(App):
             return extensions[file_extension]
         return "markdown"
 
-    def write_to_log(self, message):
+    def write_to_log(self, msg):
         timestamp = datetime.now().strftime("%H:%M:%S")
         self.query_one("#log_area", Log).write_line(f"{timestamp}: {msg}")
 
@@ -173,6 +169,7 @@ class TextEditor(App):
         elif save_status:
             self.status_msg = msg
         self.query_one("#status_area", Static).update(msg)
+        self.write_to_log(msg)
 
 def main():
     args = sys.argv[1:]
