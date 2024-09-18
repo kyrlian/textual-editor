@@ -1,6 +1,14 @@
 # Textual Editor
 
-## Install
+## Install directly from GitHub
+
+```sh
+pipx install git+https://github.com/kyrlian/textual-editor.git
+```
+
+run with `ted <file name>`
+
+## or clone locally and install
 
 Clone:
 
@@ -24,7 +32,7 @@ pipx install .
 ted <file name>
 ```
 
-uninstall from pipx:
+Uninstall from pipx:
 ```sh
 pipx uninstall textual_editor
 ```
