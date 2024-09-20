@@ -21,18 +21,19 @@ Install and run with Poetry:
 
 ```sh
 poetry install
-poetry shell
-ted <file name>
+python textual_editor\app.py
 ```
 
 Install and run with pipx:
 
 ```sh
 pipx install .
-ted <file name>
 ```
 
+run with `ted <file name>`
+
 Uninstall from pipx:
+
 ```sh
 pipx uninstall textual_editor
 ```
