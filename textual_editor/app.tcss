@@ -2,6 +2,6 @@ NewFileScreen {
     align: center middle;
 }
 
-Button {
-    width: 100%;
+#log_area{
+    height: 10%;
 }

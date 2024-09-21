@@ -9,6 +9,7 @@ from textual.containers import Horizontal
 from textual.widgets import TextArea, Header, Footer, Static, DirectoryTree, Log, Input
 from textual.binding import Binding
 from textual.screen import ModalScreen
+from textual import events
 
 def read_file(filename):
     try:
@@ -32,19 +33,18 @@ def write_file(filename, s):
 # https://textual.textualize.io/widgets/text_area/#hooking-into-key-presses
 
 class NewFileScreen(ModalScreen):
-    def __init__(self, *args, parent_app, **kwargs):
-        self.parent_app = parent_app
-        super().__init__(*args, **kwargs)
-
     def compose(self) -> ComposeResult:
         yield Static("Enter new file name")
         yield Input(name="filename", id="newfile_input")
 
+    # callback with entered text when enter is pressed
     def on_input_submitted(self, message: Input.Submitted) -> None:
-        # TODO generate proper file path
-        file_path = self.parent_app.current_dir + "/" + message.value
-        write_file(file_path, "")
-        self.parent_app.load_file(file_path)
+        self.dismiss(message.value if len(message.value) > 0 else None)
+
+    # close textual modal on escape key press
+    def on_key(self, event: events.Key) -> None:
+        if event.key == "escape":
+            self.dismiss()
 
 
 class TextEditor(App):
@@ -68,7 +68,7 @@ class TextEditor(App):
         self.current_dir = Path.cwd()
         self.status_msg = "Initializing..."
         self.language = "markdown"  # default language
-        self.file_panel_width = 40
+        self.file_panel_width = 30
         super().__init__(*args, **kwargs)
 
     def compose(self) -> ComposeResult:
@@ -79,7 +79,7 @@ class TextEditor(App):
         yield file_panel
         yield TextArea.code_editor(id="text_area", text="Please select a file...", disabled=True)
         yield Static(self.status_msg, id="status_area")
-        yield Log( id="log_area", auto_scroll=True, max_lines=5)
+        yield Log( id="log_area", auto_scroll=True, max_lines=3)
         yield Footer()
 
     #################
@@ -101,12 +101,12 @@ class TextEditor(App):
                 self.current_dir = fp.parent
             elif not fp.exists():
                 try:
-                    write_file(fp, "")
+                    self.write_to_log(f"Creating file {fp}")        
+                    fp.touch()
                     self.current_file = fp
                     self.current_dir = fp.parent
-                    self.write_to_log("Creating file", fp)        
                 except IOError as e:
-                    self.write_to_log("Error creating file", e, "error")            
+                    self.write_to_log(f"Error creating file {e} error")            
         # set the directory tree start dir
         self.query_one("#file_panel", DirectoryTree).path = str(self.current_dir)
         # load the file
@@ -135,7 +135,12 @@ class TextEditor(App):
         self.show_file_panel()
 
     def action_new(self):
-        self.push_screen(NewFileScreen(parent_app=self))
+        def _callback(input_path:Path | None):
+            if input_path is not None:
+                file_path = self.current_dir.joinpath(input_path)
+                Path(file_path).touch()
+                self.load_file(file_path)
+        self.push_screen(NewFileScreen(), callback = _callback)
 
     #################
     ###  methods  ###
@@ -143,17 +148,16 @@ class TextEditor(App):
 
     def show_file_panel(self):
         """show directory tree panel"""
-        self.query_one("#file_panel", DirectoryTree).styles.width =  self.file_panel_width
+        self.query_one("#file_panel", DirectoryTree).styles.width = self.file_panel_width
 
     def hide_file_panel(self):
         """hide directory tree panel"""
-        self.query_one("#file_panel", DirectoryTree).styles.width =  0
+        self.query_one("#file_panel", DirectoryTree).styles.width = 0
 
     def load_file(self, file_path):
         if Path(file_path).exists():
             self.current_file = file_path
             self.current_dir  = PurePath(file_path).parent
-            self.hide_file_panel()
             # detect language from extension
             text_area = self.query_one("#text_area", TextArea)
             self.language = self.detect_file_language(text_area, file_path)
@@ -162,6 +166,10 @@ class TextEditor(App):
             # read file
             text_area.text = read_file(file_path)
             self.set_status(f"{file_path} loaded")
+            # hide file panel and focus text area
+            self.hide_file_panel()
+            text_area.focus()
+
     
     def detect_file_language(self, text_area: TextArea, file_path: str):
         file_extension = PurePath(file_path).suffix
