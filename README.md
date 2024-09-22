@@ -36,7 +36,7 @@ uvx --from . ted
 Install and run uv tools:
 
 ```sh
-uv tool install .
+uv tool install . --reinstall
 ```
 
 run with `ted <file name>`
