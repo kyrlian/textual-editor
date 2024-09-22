@@ -1,14 +1,16 @@
 # Textual Editor
 
+Get [uv](https://docs.astral.sh/uv/)
+
 ## Install directly from GitHub
 
 ```sh
-pipx install git+https://github.com/kyrlian/textual-editor.git
+uv tool install git+https://github.com/kyrlian/textual-editor.git
 ```
 
 run with `ted <file name>`
 
-## or clone locally and install
+## or clone locally
 
 Clone:
 
@@ -17,23 +19,30 @@ git clone https://github.com/kyrlian/textual-editor.git
 cd textual-editor
 ```
 
-Install and run with Poetry:
+## Run
+
+Run the project script directly with uv:
 
 ```sh
-poetry install
-python textual_editor\app.py
+uv run .\textual_editor\app.py
 ```
 
-Install and run with pipx:
+Run the project script without installation with uvx:
+```sh
+uvx --from . ted
+```
+## Install
+
+Install and run uv tools:
 
 ```sh
-pipx install .
+uv tool install .
 ```
 
 run with `ted <file name>`
 
-Uninstall from pipx:
+Uninstall:
 
 ```sh
-pipx uninstall textual_editor
+uv tool uninstall textual-editor
 ```
