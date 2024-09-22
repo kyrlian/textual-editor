@@ -44,5 +44,5 @@ run with `ted <file name>`
 Uninstall:
 
 ```sh
-uv tool uninstall textual_editor
+uv tool uninstall textual-editor
 ```
