@@ -2,7 +2,7 @@
 name = "textual-editor"
 version = "0.1.0"
 description = ""
-authors = [{name ="kyrlian, email= kyrlian@gmail.com"}]
+authors = [{name ="kyrlian", email= "kyrlian@gmail.com"}]
 readme = "README.md"
 requires-python = ">=3.12"
 
